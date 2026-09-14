@@ -20,22 +20,22 @@ AI 面试训练、就业政策问答与就业数据看板为核心，把"大模�
 
 ```text
 AiStudentJobAgent/
-├── backend/                     后端服务（Spring Boot）
+├── backend/                     后端服务（Spring Boot，43 个文件）
 │   ├── src/main/java/com/campus/jobagent/
-│   │   ├── common/              统一响应、异常、工具、文件存储、缓存
-│   │   ├── config/              安全、MyBatis-Plus、Jackson、Swagger、WebSocket
-│   │   ├── security/            JWT 认证与登录用户
+│   │   ├── common/              统一响应 Result、业务异常、安全工具
+│   │   ├── config/              安全配置、MyBatis-Plus 分页、大模型配置
+│   │   ├── security/            JWT 令牌、认证过滤器、登录用户
 │   │   ├── agent/               智能体调度、提示词库、本地规则引擎、大模型客户端
-│   │   └── modules/             业务模块（auth/user/resume/job/internship/interview/policy/dashboard）
-│   ├── src/main/resources/      配置文件（application.yml / dev / prod）
-│   ├── src/test/java/           单元测试
+│   │   └── modules/             示例业务模块：auth（认证）、user（档案）、job（岗位）、dashboard（看板）
+│   ├── src/main/resources/      application.yml、application-prod.yml
+│   ├── src/test/java/           单元测试（JWT、规则引擎）
 │   └── Dockerfile
-├── frontend/                    前端工程（Vue 3 + Vite）
-│   ├── src/api/                 接口封装
+├── frontend/                    前端工程（Vue 3 + Vite，19 个文件）
+│   ├── src/api/                 接口封装（认证 / 岗位 / 看板）
 │   ├── src/router/              路由与菜单（按角色过滤）
-│   ├── src/store/               Pinia 状态
-│   ├── src/views/               页面（看板/简历/岗位/实习/面试/政策/档案）
-│   ├── src/components/          通用组件（ECharts 封装）
+│   ├── src/store/               Pinia 用户状态
+│   ├── src/views/               页面：登录、就业数据看板、岗位匹配、个人档案
+│   ├── src/components/          ECharts 图表封装
 │   ├── nginx.conf               生产环境 Nginx 配置
 │   └── Dockerfile
 ├── deploy/sql/                  数据库脚本
@@ -45,6 +45,21 @@ AiStudentJobAgent/
 ├── docker-compose.yml           一键部署编排
 └── .github/workflows/ci.yml     持续集成：后端编译测试 + 前端构建
 ```
+
+### 2.1 脚手架当前实现范围
+
+脚手架按"**一条最小可运行闭环 + 一个可照抄的示例模块**"设计，避免文件数量过多：
+
+| 模块 | 脚手架中的状态 | 说明 |
+| --- | --- | --- |
+| 认证 / 用户档案 | ✅ 已实现 | 注册、登录、JWT 鉴权、四类角色、档案维护 |
+| 岗位匹配 / 投递 | ✅ 已实现 | **示例模块**：发布、检索、智能匹配、投递、进度跟踪 |
+| 就业数据看板 | ✅ 已实现 | 就业率、行业分布、薪资分析、投递趋势（SQL 实时聚合） |
+| 智能体（AI） | ✅ 已实现 | 大模型通道 + 本地规则引擎降级，岗位匹配解读已接入 |
+| 简历 / 实习 / 面试 / 政策 | 📋 设计已完成，代码待补 | 表结构与接口已在 `docs/` 定义，按 `modules/job` 的结构照抄即可 |
+
+> 新增业务模块的标准做法：在 `modules/` 下新建 `entity / mapper / service / controller` 四个包，
+> 参照 `modules/job` 的写法；前端在 `views/` 增加页面，并在 `router/index.ts` 中注册路由与菜单。
 
 ## 三、快速开始
 

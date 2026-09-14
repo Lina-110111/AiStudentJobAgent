@@ -1,8 +1,8 @@
 package com.campus.jobagent.agent;
 
-import com.campus.jobagent.agent.model.LlmChatMessage;
-import com.campus.jobagent.agent.model.LlmChatRequest;
-import com.campus.jobagent.agent.model.LlmChatResponse;
+import com.campus.jobagent.agent.LlmModels.ChatMessage;
+import com.campus.jobagent.agent.LlmModels.ChatRequest;
+import com.campus.jobagent.agent.LlmModels.ChatResponse;
 import com.campus.jobagent.agent.prompt.PromptLibrary;
 import com.campus.jobagent.common.util.JsonUtils;
 import com.campus.jobagent.config.AiProperties;
@@ -16,10 +16,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 智能体调度器：统一对外提供“场景 + 业务数据 -> 结构化结果”的能力。
+ * 智能体调度器：统一对外提供"场景 + 业务数据 → 结构化结果"的能力。
  *
- * <p>调用链：业务 Service -> AgentOrchestrator -> (大模型 | 本地规则引擎) -> 结构化 Map。
- * 大模型不可用时自动降级，保证接口永远有可用返回。
+ * <p>调用链：业务 Service → AgentOrchestrator →（大模型 | 本地规则引擎）→ 结构化 Map。
+ * 大模型不可用时自动降级，保证接口始终有可用返回（断网也能演示）。
  */
 @Slf4j
 @Service
@@ -35,15 +35,14 @@ public class AgentOrchestrator {
     public AgentResult run(AgentScene scene, String payload) {
         LlmClient client = llmClientProvider.getIfAvailable();
         if (client != null) {
-            LlmChatRequest request = new LlmChatRequest(
+            ChatRequest request = new ChatRequest(
                     aiProperties.getModel(),
-                    List.of(
-                            LlmChatMessage.system(promptLibrary.systemPrompt(scene)),
-                            LlmChatMessage.user(promptLibrary.userPrompt(scene, payload))),
+                    List.of(ChatMessage.system(promptLibrary.systemPrompt(scene)),
+                            ChatMessage.user("【业务数据】\n" + payload)),
                     aiProperties.getTemperature(),
                     aiProperties.getMaxTokens(),
                     true);
-            LlmChatResponse response = client.chat(request);
+            ChatResponse response = client.chat(request);
             if (response.success() && response.content() != null && !response.content().isBlank()) {
                 Map<String, Object> data = JsonUtils.parseMap(response.content());
                 data.putIfAbsent("engine", client.provider());

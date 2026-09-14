@@ -1,6 +1,6 @@
 package com.campus.jobagent.modules.job.controller;
 
-import com.campus.jobagent.common.api.PageResult;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.campus.jobagent.common.api.Result;
 import com.campus.jobagent.common.util.SecurityUtils;
 import com.campus.jobagent.modules.job.dto.ApplicationStatusRequest;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 岗位匹配与申请接口。
+ * 岗位匹配与申请接口（脚手架示例模块，其它模块按此结构照抄）。
  */
 @Tag(name = "岗位匹配与申请", description = "岗位发布、智能匹配、一键投递、进度跟踪")
 @RestController
@@ -38,21 +38,21 @@ public class JobController {
 
     private final JobService jobService;
 
-    @Operation(summary = "发布岗位（企业HR / 辅导员）")
+    @Operation(summary = "发布岗位（企业HR / 辅导员 / 院系管理员）")
     @PreAuthorize("hasAnyRole('HR','COUNSELOR','COLLEGE_ADMIN')")
     @PostMapping
     public Result<JobPost> publish(@Valid @RequestBody JobPostCreateRequest request) {
         return Result.ok("岗位发布成功", jobService.publish(SecurityUtils.getUserId(), request));
     }
 
-    @Operation(summary = "岗位列表（支持关键词/类别/城市筛选）")
+    @Operation(summary = "岗位列表（关键词 / 类别 / 城市筛选）")
     @GetMapping
-    public Result<PageResult<JobPost>> page(@RequestParam(defaultValue = "1") long pageNum,
-                                            @RequestParam(defaultValue = "10") long pageSize,
-                                            @RequestParam(required = false) String keyword,
-                                            @RequestParam(required = false) String category,
-                                            @RequestParam(required = false) String city) {
-        return Result.ok(PageResult.of(jobService.pageJobs(pageNum, pageSize, keyword, category, city)));
+    public Result<Page<JobPost>> page(@RequestParam(defaultValue = "1") long pageNum,
+                                      @RequestParam(defaultValue = "10") long pageSize,
+                                      @RequestParam(required = false) String keyword,
+                                      @RequestParam(required = false) String category,
+                                      @RequestParam(required = false) String city) {
+        return Result.ok(jobService.pageJobs(pageNum, pageSize, keyword, category, city));
     }
 
     @Operation(summary = "岗位详情")
@@ -92,16 +92,16 @@ public class JobController {
         return Result.ok(jobService.myApplications(SecurityUtils.getUserId()));
     }
 
-    @Operation(summary = "岗位申请列表（企业HR / 辅导员）")
+    @Operation(summary = "岗位申请列表（企业HR / 辅导员 / 院系管理员）")
     @PreAuthorize("hasAnyRole('HR','COUNSELOR','COLLEGE_ADMIN')")
     @GetMapping("/applications")
-    public Result<PageResult<JobApplication>> applications(@RequestParam(required = false) Long jobId,
-                                                           @RequestParam(defaultValue = "1") long pageNum,
-                                                           @RequestParam(defaultValue = "10") long pageSize) {
-        return Result.ok(PageResult.of(jobService.pageApplications(jobId, pageNum, pageSize)));
+    public Result<Page<JobApplication>> applications(@RequestParam(required = false) Long jobId,
+                                                     @RequestParam(defaultValue = "1") long pageNum,
+                                                     @RequestParam(defaultValue = "10") long pageSize) {
+        return Result.ok(jobService.pageApplications(jobId, pageNum, pageSize));
     }
 
-    @Operation(summary = "更新申请状态（企业HR / 辅导员）")
+    @Operation(summary = "更新申请状态（企业HR / 辅导员 / 院系管理员）")
     @PreAuthorize("hasAnyRole('HR','COUNSELOR','COLLEGE_ADMIN')")
     @PutMapping("/applications/{applicationId}/status")
     public Result<JobApplication> updateStatus(@PathVariable Long applicationId,

@@ -23,34 +23,10 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '就业数据看板', roles: ALL }
       },
       {
-        path: 'resume',
-        name: 'resume',
-        component: () => import('@/views/ResumeView.vue'),
-        meta: { title: '智能简历', roles: ['STUDENT', 'COUNSELOR'] }
-      },
-      {
         path: 'job',
         name: 'job',
         component: () => import('@/views/JobView.vue'),
         meta: { title: '岗位匹配', roles: ALL }
-      },
-      {
-        path: 'internship',
-        name: 'internship',
-        component: () => import('@/views/InternshipView.vue'),
-        meta: { title: '实习管理', roles: ALL }
-      },
-      {
-        path: 'interview',
-        name: 'interview',
-        component: () => import('@/views/InterviewView.vue'),
-        meta: { title: 'AI 面试训练', roles: ['STUDENT', 'COUNSELOR'] }
-      },
-      {
-        path: 'policy',
-        name: 'policy',
-        component: () => import('@/views/PolicyView.vue'),
-        meta: { title: '政策问答', roles: ALL }
       },
       {
         path: 'profile',
@@ -62,9 +38,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: () => import('@/views/NotFoundView.vue'),
-    meta: { public: true, title: '页面不存在' }
+    redirect: '/dashboard'
   }
 ]
 
@@ -76,11 +50,7 @@ const router = createRouter({
 /** 侧边菜单：按角色过滤（前端控制可见性，后端接口再做一次鉴权） */
 export const menus: MenuItem[] = [
   { index: '/dashboard', title: '就业数据看板', icon: 'DataAnalysis', roles: ALL },
-  { index: '/resume', title: '智能简历', icon: 'Document', roles: ['STUDENT', 'COUNSELOR'] },
   { index: '/job', title: '岗位匹配', icon: 'Briefcase', roles: ALL },
-  { index: '/internship', title: '实习管理', icon: 'OfficeBuilding', roles: ALL },
-  { index: '/interview', title: 'AI 面试训练', icon: 'Microphone', roles: ['STUDENT', 'COUNSELOR'] },
-  { index: '/policy', title: '政策问答', icon: 'ChatDotRound', roles: ALL },
   { index: '/profile', title: '个人档案', icon: 'User', roles: ALL }
 ]
 

@@ -4,12 +4,12 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.campus.jobagent.common.api.ResultCode;
 import com.campus.jobagent.common.constant.RoleCode;
 import com.campus.jobagent.common.exception.BizException;
-import com.campus.jobagent.modules.auth.dto.LoginRequest;
-import com.campus.jobagent.modules.auth.dto.LoginResponse;
-import com.campus.jobagent.modules.auth.dto.RegisterRequest;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginRequest;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginResponse;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.RegisterRequest;
 import com.campus.jobagent.modules.user.dto.UserVO;
 import com.campus.jobagent.modules.user.entity.SysUser;
-import com.campus.jobagent.modules.user.service.SysUserService;
+import com.campus.jobagent.modules.user.mapper.SysUserMapper;
 import com.campus.jobagent.security.JwtTokenProvider;
 import com.campus.jobagent.security.LoginUser;
 import com.campus.jobagent.security.LoginUserService;
@@ -29,15 +29,14 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final SysUserService sysUserService;
+    private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final LoginUserService loginUserService;
 
     /** 注册：账号唯一性校验 + 密码加密存储。 */
     @Transactional(rollbackFor = Exception.class)
     public UserVO register(RegisterRequest request) {
-        Long count = sysUserService.getBaseMapper().selectCount(Wrappers.<SysUser>lambdaQuery()
+        Long count = sysUserMapper.selectCount(Wrappers.<SysUser>lambdaQuery()
                 .eq(SysUser::getUsername, request.username()));
         if (count != null && count > 0) {
             throw BizException.of(ResultCode.USERNAME_EXISTS);
@@ -53,17 +52,17 @@ public class AuthService {
         user.setPhone(request.phone());
         user.setEmail(request.email());
         user.setStatus(1);
+        user.setDeleted(0);
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
-        user.setDeleted(0);
-        sysUserService.save(user);
+        sysUserMapper.insert(user);
         log.info("新用户注册成功：username={}, role={}", user.getUsername(), user.getRoleCode());
         return UserVO.from(user);
     }
 
     /** 登录：校验账号密码并签发 JWT。 */
     public LoginResponse login(LoginRequest request) {
-        SysUser user = sysUserService.getOne(Wrappers.<SysUser>lambdaQuery()
+        SysUser user = sysUserMapper.selectOne(Wrappers.<SysUser>lambdaQuery()
                 .eq(SysUser::getUsername, request.username())
                 .last("limit 1"));
         if (user == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -79,7 +78,7 @@ public class AuthService {
 
     /** 查询当前登录用户。 */
     public UserVO currentUser(Long userId) {
-        SysUser user = sysUserService.getById(userId);
+        SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
             throw BizException.of(ResultCode.USER_NOT_FOUND);
         }

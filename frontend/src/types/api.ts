@@ -6,12 +6,12 @@ export interface ApiResult<T = unknown> {
   timestamp: number
 }
 
-/** 分页结构 */
-export interface PageResult<T> {
+/** 分页结果（后端 MyBatis-Plus Page 的 records/total 字段） */
+export interface PageData<T> {
   records: T[]
   total: number
-  pageNum: number
-  pageSize: number
+  current?: number
+  size?: number
 }
 
 export type RoleCode = 'STUDENT' | 'COUNSELOR' | 'HR' | 'COLLEGE_ADMIN'
@@ -69,43 +69,6 @@ export interface JobMatch {
   agentExplanation: Record<string, unknown>
 }
 
-export interface ResumeItem {
-  id: number
-  title: string
-  targetJob?: string
-  fileName?: string
-  filePath?: string
-  fileType?: string
-  contentText?: string
-  diagnosisJson?: string
-  score?: number
-  createTime?: string
-}
-
-export interface InterviewSession {
-  id: number
-  category: string
-  difficulty: string
-  questionsJson: string
-  answersJson: string
-  reportJson?: string
-  totalScore?: number
-  status: string
-  createTime?: string
-}
-
-export interface PolicyItem {
-  id: number
-  title: string
-  category?: string
-  region?: string
-  publishOrg?: string
-  publishDate?: string
-  content?: string
-  tags?: string
-  viewCount?: number
-}
-
 /** 数据看板（就业率 / 行业分布 / 薪资分析 三大核心图表） */
 export interface DashboardData {
   employmentRate: number
@@ -116,7 +79,6 @@ export interface DashboardData {
   statistics: Record<string, number>
 }
 
-/** 菜单项 */
 export interface MenuItem {
   index: string
   title: string

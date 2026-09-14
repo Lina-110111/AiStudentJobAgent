@@ -1,57 +1,46 @@
 package com.campus.jobagent.modules.user.controller;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.campus.jobagent.common.api.PageResult;
 import com.campus.jobagent.common.api.Result;
 import com.campus.jobagent.common.api.ResultCode;
 import com.campus.jobagent.common.exception.BizException;
 import com.campus.jobagent.common.util.SecurityUtils;
-import com.campus.jobagent.modules.user.dto.ProfileUpdateRequest;
 import com.campus.jobagent.modules.user.dto.UserVO;
 import com.campus.jobagent.modules.user.entity.SysUser;
-import com.campus.jobagent.modules.user.service.SysUserService;
+import com.campus.jobagent.modules.user.mapper.SysUserMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 用户与档案接口。
+ * 用户档案接口。
  */
-@Tag(name = "用户与档案", description = "个人档案维护、用户查询（管理员/辅导员）")
+@Tag(name = "用户与档案", description = "个人档案查询与维护")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
-    private final SysUserService sysUserService;
+    private final SysUserMapper sysUserMapper;
 
     @Operation(summary = "获取当前登录用户信息")
     @GetMapping("/me")
     public Result<UserVO> me() {
-        SysUser user = sysUserService.getById(SecurityUtils.getUserId());
-        if (user == null) {
-            throw BizException.of(ResultCode.USER_NOT_FOUND);
-        }
-        return Result.ok(UserVO.from(user));
+        return Result.ok(UserVO.from(getCurrentUser()));
     }
 
-    @Operation(summary = "更新当前用户个人档案")
+    @Operation(summary = "更新个人档案", description = "技能与求职意向会直接影响岗位匹配得分")
     @PutMapping("/me")
     public Result<UserVO> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
-        SysUser user = sysUserService.getById(SecurityUtils.getUserId());
-        if (user == null) {
-            throw BizException.of(ResultCode.USER_NOT_FOUND);
-        }
+        SysUser user = getCurrentUser();
         user.setRealName(request.realName());
         user.setPhone(request.phone());
         user.setEmail(request.email());
@@ -62,36 +51,43 @@ public class UserController {
         user.setEducation(request.education());
         user.setSkills(request.skills());
         user.setJobIntention(request.jobIntention());
-        sysUserService.updateById(user);
-        return Result.ok("档案已更新", UserVO.from(sysUserService.getById(user.getId())));
+        sysUserMapper.updateById(user);
+        return Result.ok("档案已更新", UserVO.from(sysUserMapper.selectById(user.getId())));
     }
 
-    @Operation(summary = "分页查询用户（辅导员/院系管理员）")
-    @PreAuthorize("hasAnyRole('COUNSELOR','COLLEGE_ADMIN')")
-    @GetMapping
-    public Result<PageResult<UserVO>> page(@RequestParam(defaultValue = "1") long pageNum,
-                                           @RequestParam(defaultValue = "10") long pageSize,
-                                           @RequestParam(required = false) String roleCode,
-                                           @RequestParam(required = false) String keyword) {
-        Page<SysUser> page = sysUserService.page(new Page<>(pageNum, pageSize),
-                Wrappers.<SysUser>lambdaQuery()
-                        .eq(roleCode != null && !roleCode.isBlank(), SysUser::getRoleCode, roleCode)
-                        .and(keyword != null && !keyword.isBlank(), w -> w
-                                .like(SysUser::getUsername, keyword)
-                                .or()
-                                .like(SysUser::getRealName, keyword))
-                        .orderByDesc(SysUser::getId));
-        return Result.ok(PageResult.of(page, UserVO::from));
-    }
-
-    @Operation(summary = "查询指定用户详情（辅导员/院系管理员）")
-    @PreAuthorize("hasAnyRole('COUNSELOR','COLLEGE_ADMIN')")
-    @GetMapping("/{id}")
-    public Result<UserVO> detail(@PathVariable Long id) {
-        SysUser user = sysUserService.getById(id);
+    private SysUser getCurrentUser() {
+        SysUser user = sysUserMapper.selectById(SecurityUtils.getUserId());
         if (user == null) {
             throw BizException.of(ResultCode.USER_NOT_FOUND);
         }
-        return Result.ok(UserVO.from(user));
+        return user;
+    }
+
+    /** 个人档案更新请求（仅本接口使用，直接内联在本文件中）。 */
+    @Schema(description = "个人档案更新请求")
+    public record ProfileUpdateRequest(
+            @Size(max = 32, message = "姓名长度不能超过 32 个字符")
+            String realName,
+
+            String phone,
+
+            @Email(message = "邮箱格式不正确")
+            String email,
+
+            String avatar,
+
+            String college,
+
+            String major,
+
+            String grade,
+
+            String education,
+
+            @Size(max = 255, message = "技能标签过长")
+            String skills,
+
+            @Size(max = 255, message = "求职意向过长")
+            String jobIntention) {
     }
 }

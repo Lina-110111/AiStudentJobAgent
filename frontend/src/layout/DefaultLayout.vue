@@ -17,9 +17,6 @@
       <el-header class="header">
         <div class="header-title">{{ route.meta.title || 'AI 大学生就业服务智能体' }}</div>
         <div class="header-right">
-          <el-tag v-if="aiStatus" :type="aiStatus.degraded ? 'warning' : 'success'" effect="plain">
-            {{ aiStatus.degraded ? 'AI：本地规则模式' : `AI：${aiStatus.provider}` }}
-          </el-tag>
           <el-dropdown @command="onCommand">
             <span class="user">
               <el-icon><User /></el-icon>
@@ -37,28 +34,22 @@
       </el-header>
 
       <el-main class="main">
-        <router-view v-slot="{ Component }">
-          <keep-alive :max="6">
-            <component :is="Component" />
-          </keep-alive>
-        </router-view>
+        <router-view />
       </el-main>
     </el-container>
   </el-container>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { aiApi } from '@/api'
 import { menus } from '@/router'
 import { useUserStore } from '@/store/user'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const aiStatus = ref<Record<string, any> | null>(null)
 
 const visibleMenus = computed(() =>
   menus.filter((menu) => !userStore.info || menu.roles.includes(userStore.info.roleCode))
@@ -73,14 +64,6 @@ async function onCommand(command: string) {
   userStore.logout()
   router.push('/login')
 }
-
-onMounted(async () => {
-  try {
-    aiStatus.value = await aiApi.status()
-  } catch {
-    aiStatus.value = null
-  }
-})
 </script>
 
 <style scoped>
@@ -147,12 +130,6 @@ onMounted(async () => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
 }
 
 .user {

@@ -2,9 +2,9 @@ package com.campus.jobagent.modules.auth.controller;
 
 import com.campus.jobagent.common.api.Result;
 import com.campus.jobagent.common.util.SecurityUtils;
-import com.campus.jobagent.modules.auth.dto.LoginRequest;
-import com.campus.jobagent.modules.auth.dto.LoginResponse;
-import com.campus.jobagent.modules.auth.dto.RegisterRequest;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginRequest;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginResponse;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.RegisterRequest;
 import com.campus.jobagent.modules.auth.service.AuthService;
 import com.campus.jobagent.modules.user.dto.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 认证接口：注册、登录、登出、当前用户。
+ * 认证接口：注册、登录、当前用户。
  */
-@Tag(name = "认证", description = "注册 / 登录 / 登出")
+@Tag(name = "认证", description = "注册 / 登录 / 当前用户")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -44,11 +44,5 @@ public class AuthController {
     @GetMapping("/me")
     public Result<UserVO> me() {
         return Result.ok(authService.currentUser(SecurityUtils.getUserId()));
-    }
-
-    @Operation(summary = "登出（前端清除本地令牌即可，服务端保留扩展点）")
-    @PostMapping("/logout")
-    public Result<Void> logout() {
-        return Result.ok("已退出登录", null);
     }
 }
