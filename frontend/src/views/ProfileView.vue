@@ -55,6 +55,9 @@ const form = reactive<Record<string, any>>({
 
 onMounted(async () => {
   const info = userStore.info ?? (await userStore.loadProfile())
+  if (!info) {
+    return
+  }
   Object.assign(form, {
     realName: info.realName ?? '',
     phone: info.phone ?? '',

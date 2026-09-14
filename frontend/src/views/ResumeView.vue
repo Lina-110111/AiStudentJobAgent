@@ -123,7 +123,7 @@ async function diagnose(row: ResumeItem) {
 
 async function showReport(row: ResumeItem) {
   const detail = await resumeApi.detail(row.id)
-  const raw = (detail as unknown as { diagnosisJson?: string }).diagnosisJson
+  const raw = detail.diagnosisJson
   if (!raw) {
     ElMessage.info('该简历还没有诊断报告，请先执行 AI 诊断')
     return

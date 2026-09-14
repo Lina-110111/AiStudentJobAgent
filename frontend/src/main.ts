@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp, type Component } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
@@ -16,7 +16,7 @@ app.use(ElementPlus, { locale: zhCn })
 
 // 全局注册 Element Plus 图标，菜单里用字符串名即可渲染
 Object.entries(ElementPlusIconsVue).forEach(([key, component]) => {
-  app.component(key, component)
+  app.component(key, component as Component)
 })
 
 app.mount('#app')

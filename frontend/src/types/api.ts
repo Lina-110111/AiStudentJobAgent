@@ -76,6 +76,8 @@ export interface ResumeItem {
   fileName?: string
   filePath?: string
   fileType?: string
+  contentText?: string
+  diagnosisJson?: string
   score?: number
   createTime?: string
 }
