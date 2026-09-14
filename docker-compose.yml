@@ -1,0 +1,100 @@
+# =============================================================
+#  AI 大学生就业服务智能体 —— 一键部署编排
+#  使用：cp .env.example .env && docker compose up -d --build
+# =============================================================
+name: job-agent
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: job-agent-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root123456}
+      MYSQL_DATABASE: ${DB_NAME:-job_agent}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --default-authentication-plugin=mysql_native_password
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动自动执行建表与初始化数据脚本
+      - ./deploy/sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-root123456}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - job-agent-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: job-agent-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - job-agent-net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: job-agent-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-job_agent}
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:-root123456}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-job-agent-course-design-secret-key-2024-please-change-me}
+      # 接入真实大模型时：在 .env 中配置 AI_ENABLED=true 与 AI_API_KEY
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-deepseek}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com}
+      AI_MODEL: ${AI_MODEL:-deepseek-chat}
+      AI_API_KEY: ${AI_API_KEY:-}
+      UPLOAD_PATH: /app/data/upload
+      TZ: Asia/Shanghai
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - upload-data:/app/data/upload
+    networks:
+      - job-agent-net
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: job-agent-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8081}:80"
+    networks:
+      - job-agent-net
+
+volumes:
+  mysql-data:
+  redis-data:
+  upload-data:
+
+networks:
+  job-agent-net:
+    driver: bridge

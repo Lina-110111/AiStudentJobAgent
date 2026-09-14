@@ -1,0 +1,54 @@
+# ---------- Java / Maven ----------
+target/
+!.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+*.class
+*.jar
+*.war
+
+# ---------- Node / 前端 ----------
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+.pnpm-store/
+pnpm-lock.yaml.bak
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+.project
+.classpath
+.settings/
+
+# ---------- 运行期产物 ----------
+logs/
+*.log
+data/
+upload/
+/backend/data/
+/backend/logs/
+
+# ---------- 环境与密钥（严禁提交）----------
+.env
+.env.local
+.env.*.local
+application-local.yml
+*.pem
+*.key
+
+# ---------- 操作系统 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 临时文件 ----------
+*.tmp
+*.bak
+*.swp
+*.zip

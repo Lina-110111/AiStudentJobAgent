@@ -1,0 +1,33 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  color: #1f2d3d;
+  background: #f5f7fa;
+}
+
+.page {
+  padding: 4px;
+}
+
+.page > .el-card + .el-card,
+.page > .el-row + .el-row {
+  margin-top: 16px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+pre {
+  margin: 0;
+}

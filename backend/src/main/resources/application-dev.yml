@@ -1,0 +1,9 @@
+# 开发环境：打印 SQL、默认不调用大模型，前端在 5173 端口热更新
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.campus.jobagent: debug
+    org.springframework.security: info
