@@ -19,7 +19,7 @@ AI 面试训练、就业政策问答与就业数据看板为核心，把"大模�
 ## 二、目录结构
 
 ```text
-ai-job-agent/
+AiStudentJobAgent/
 ├── backend/                     后端服务（Spring Boot）
 │   ├── src/main/java/com/campus/jobagent/
 │   │   ├── common/              统一响应、异常、工具、文件存储、缓存
