@@ -4,10 +4,12 @@ WORKDIR /build
 
 # 先拷贝 pom 并预热依赖，充分利用镜像层缓存
 COPY pom.xml .
-RUN mvn -B -q dependency:go-offline -DskipTests
+# 使用阿里云镜像源，避免访问 Maven Central 超时 / SSL 断连
+COPY settings.xml .
+RUN mvn -B -q -s settings.xml dependency:go-offline -DskipTests
 
 COPY src ./src
-RUN mvn -B -q clean package -DskipTests
+RUN mvn -B -q -s settings.xml clean package -DskipTests
 
 # ---------- 运行阶段 ----------
 FROM eclipse-temurin:17-jre
