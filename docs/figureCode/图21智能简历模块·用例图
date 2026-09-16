@@ -1,0 +1,31 @@
+@startuml 图-21 智能简历模块用例图
+left to right direction
+skinparam packageStyle rectangle
+
+actor "学生" as Student
+actor "辅导员" as Counselor
+actor "AI智能体服务" as Agent
+
+rectangle "智能简历子系统" {
+  usecase "UC-2.1 上传简历附件" as UC21
+  usecase "UC-2.2 登记与编辑简历" as UC22
+  usecase "UC-2.3 选择模板在线编辑" as UC23
+  usecase "UC-2.4 AI简历诊断" as UC24
+  usecase "UC-2.5 查看诊断报告" as UC25
+  usecase "UC-2.6 查看我的简历列表" as UC26
+  usecase "UC-2.7 查看学生简历与报告" as UC27
+}
+
+Student --> UC21
+Student --> UC22
+Student --> UC24
+Student --> UC25
+Student --> UC26
+Counselor --> UC27
+Agent --> UC24
+
+UC21 ..> UC22 : <<include>>
+UC23 ..> UC22 : <<extend>>
+UC25 ..> UC24 : <<extend>>
+UC27 ..> UC25 : <<include>>
+@enduml

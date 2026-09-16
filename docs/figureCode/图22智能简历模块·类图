@@ -1,0 +1,96 @@
+@startuml 图-22 智能简历模块类图
+skinparam classAttributeIconSize 0
+
+class SysUser <<实体>> {
+  +Long Id
+  +String Username
+  +String RealName
+  +String RoleCode
+  +String College
+  +String Major
+  +String Education
+  +String Skills
+  +String JobIntention
+}
+
+class Resume <<实体>> {
+  +Long Id
+  +Long UserId
+  +String Title
+  +String FileName
+  +String FilePath
+  +String FileType
+  +String ContentText
+  +String TargetJob
+  +Integer Score
+  +String DiagnosisJson
+  +Integer Status
+  +LocalDateTime CreateTime
+  +LocalDateTime UpdateTime
+  +Integer Deleted
+}
+
+class ResumeController <<控制层>> {
+  +upload(MultipartFile) Result
+  +create(ResumeCreateRequest) Result
+  +myResumes(long, long) Result
+  +detail(Long) Result
+  +diagnose(Long, String) Result
+  +lastDiagnosis(Long) Result
+}
+
+class ResumeService <<业务层>> {
+  +create(Long, ResumeCreateRequest) Resume
+  +pageByUser(Long, long, long) Page
+  +getOwned(Long, Long, boolean) Resume
+  +diagnose(Long, Long, String) Map
+}
+
+class ResumeMapper <<数据访问>> {
+  +selectById(Long) Resume
+  +selectPage(Page, Wrapper) Page
+}
+
+class FileStorageService <<通用能力>> {
+  +store(MultipartFile, String) StoredFile
+}
+
+class AgentOrchestrator <<智能体>> {
+  +run(AgentScene, String) AgentResult
+}
+
+enum AgentScene {
+  RESUME_DIAGNOSIS
+  JOB_MATCH
+  INTERVIEW_EVALUATION
+  POLICY_QA
+}
+
+class ResumeDiagnosisVO <<值对象>> {
+  +int OverallScore
+  +String Level
+  +List Strengths
+  +List Weaknesses
+  +List Suggestions
+  +List MissingKeywords
+}
+
+class ResumeCreateRequest <<请求对象>> {
+  +String Title
+  +String TargetJob
+  +String FilePath
+  +String FileName
+  +String FileType
+  +String ContentText
+}
+
+SysUser "1" --> "0..*" Resume : 拥有
+ResumeController ..> ResumeService : 调用
+ResumeController ..> ResumeCreateRequest : 接收
+ResumeService ..> ResumeMapper : 数据访问
+ResumeService ..> FileStorageService : 保存附件
+ResumeService ..> AgentOrchestrator : 发起诊断
+AgentOrchestrator ..> AgentScene : 场景路由
+AgentOrchestrator ..> ResumeDiagnosisVO : 产出报告
+Resume "1" *-- "0..1" ResumeDiagnosisVO : 最近一次诊断
+@enduml
