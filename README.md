@@ -135,3 +135,5 @@ cd frontend && npm install && npm run dev
 基于 AI 的大学生就业服务智能体，集成用户权限、简历智能诊断、岗位匹配、实习审批流程、AI 面试训练、就业政策问答与数据看板等功能。
 nihao
 >>>>>>> da9505850d0f83986a12669442c448146b772046
+
+> Push connection test from local VS Code (2026-09-20).
