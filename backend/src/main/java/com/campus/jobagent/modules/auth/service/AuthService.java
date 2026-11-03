@@ -1,5 +1,5 @@
 package com.campus.jobagent.modules.auth.service;
-
+import java.util.Map;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.campus.jobagent.common.api.ResultCode;
 import com.campus.jobagent.common.constant.RoleCode;
@@ -85,4 +85,17 @@ public class AuthService {
         }
         return UserVO.from(user);
     }
+    public Map<String, Object> generateTokenForUser(SysUser user) {
+    LoginUser loginUser = loginUserService.toLoginUser(user);
+    String token = jwtTokenProvider.generateToken(loginUser);
+    
+    return Map.of(
+        "token", token,
+        "userId", user.getId(),
+        "username", user.getUsername(),
+        "realName", user.getRealName() != null ? user.getRealName() : "",
+        "role", user.getRoleCode()
+    );
+}
+
 }

@@ -20,6 +20,7 @@ public final class SecurityConstants {
     /** 免登录白名单 */
     public static final String[] WHITE_LIST = {
             "/api/auth/login",
+            "/api/auth/sms/**",
             "/api/auth/register",
             "/api/auth/captcha",
             "/api/policy/public/**",
