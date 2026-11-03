@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.campus.jobagent.security.LoginUserService;
 import java.time.LocalDateTime;
 
 /**
@@ -32,6 +32,7 @@ public class AuthService {
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final LoginUserService loginUserService;
 
     /** 注册：账号唯一性校验 + 密码加密存储。 */
     @Transactional(rollbackFor = Exception.class)
@@ -71,7 +72,7 @@ public class AuthService {
         if (user.getStatus() == null || user.getStatus() != 1) {
             throw BizException.of(ResultCode.USER_DISABLED);
         }
-        LoginUser loginUser = LoginUserService.toLoginUser(user);
+        LoginUser loginUser = loginUserService.toLoginUser(user);
         String token = jwtTokenProvider.generateToken(loginUser);
         return new LoginResponse(token, jwtTokenProvider.getExpireMillis(), UserVO.from(user));
     }

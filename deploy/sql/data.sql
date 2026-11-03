@@ -184,3 +184,60 @@ VALUES
 -- 数据校验：政策条目数量应 >= 50
 -- -------------------------------------------------------------
 SELECT COUNT(*) AS policy_count FROM `policy_item` WHERE `deleted` = 0;
+-- 角色
+INSERT INTO sys_role(role_code, role_name, description) VALUES
+('STUDENT',       '学生',     '投递简历、实习申请、面试训练'),
+('COUNSELOR',     '辅导员',   '审批实习、批阅日志、查看学生档案'),
+('HR',            '企业HR',   '发布岗位、处理投递'),
+('COLLEGE_ADMIN', '院系管理员','全部权限');
+
+-- 权限（模块:操作 风格，和禅道一模一样）
+INSERT INTO sys_permission(perm_code, perm_name, module, type) VALUES
+-- 岗位模块
+('job:view',  '查看岗位',   'job', 'MENU'),
+('job:add',   '发布岗位',   'job', 'BUTTON'),
+('job:edit',  '编辑岗位',   'job', 'BUTTON'),
+('job:delete','下架岗位',   'job', 'BUTTON'),
+-- 简历模块
+('resume:view',  '查看简历', 'resume', 'MENU'),
+('resume:upload','上传简历', 'resume', 'BUTTON'),
+-- 实习模块
+('internship:apply',  '申请实习',   'internship', 'BUTTON'),
+('internship:approve','审批实习',   'internship', 'BUTTON'),
+('internship:comment','批阅日志',   'internship', 'BUTTON'),
+-- 面试模块
+('interview:train',  '面试训练',   'interview', 'MENU'),
+-- 政策模块
+('policy:view',   '查看政策',   'policy', 'MENU'),
+('policy:publish','发布政策',   'policy', 'BUTTON'),
+-- 看板
+('dashboard:view', '数据看板',   'dashboard', 'MENU'),
+-- 用户管理
+('user:manage', '用户管理',   'user', 'MENU');
+
+-- 用户-角色（先给4个演示账号绑角色，对应 sys_user 的 id 1~4）
+INSERT INTO sys_user_role(user_id, role_id) VALUES
+(1, 1),  -- student01 -> STUDENT
+(2, 2),  -- counselor01 -> COUNSELOR
+(3, 3),  -- hr01 -> HR
+(4, 4);  -- admin01 -> COLLEGE_ADMIN
+
+-- 角色-权限
+-- 学生：看岗位、传简历、申请实习、面试训练、看政策
+INSERT INTO sys_role_permission(role_id, perm_id)
+SELECT 1, id FROM sys_permission WHERE perm_code IN
+('job:view','resume:view','resume:upload','internship:apply','interview:train','policy:view');
+
+-- 辅导员：学生能干的 + 审批实习、批阅日志
+INSERT INTO sys_role_permission(role_id, perm_id)
+SELECT 2, id FROM sys_permission WHERE perm_code IN
+('job:view','resume:view','internship:apply','internship:approve','internship:comment','policy:view','dashboard:view');
+
+-- HR：看岗位、增删改岗位、看简历
+INSERT INTO sys_role_permission(role_id, perm_id)
+SELECT 3, id FROM sys_permission WHERE perm_code IN
+('job:view','job:add','job:edit','job:delete','resume:view');
+
+-- 管理员：全权限
+INSERT INTO sys_role_permission(role_id, perm_id)
+SELECT 4, id FROM sys_permission;
