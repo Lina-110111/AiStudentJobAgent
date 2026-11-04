@@ -13,6 +13,41 @@
         <el-form-item label="登录密码" prop="password">
           <el-input v-model="form.password" type="password" placeholder="请输入密码" show-password />
         </el-form-item>
+
+        <el-form-item label="图形验证码" prop="captchaCode">
+          <div class="captcha-row">
+            <el-input v-model="form.captchaCode" placeholder="请输入右侧字符" />
+            <img
+              class="captcha-img"
+              :src="toImgSrc(imageCaptcha.image)"
+              alt="图形验证码"
+              title="看不清？点击刷新"
+              @click="refreshImage"
+            />
+          </div>
+        </el-form-item>
+
+        <el-form-item label="顺序点选验证码">
+          <div class="click-row">
+            <div
+              v-for="(img, index) in clickCaptcha.images"
+              :key="img + index"
+              class="click-tile"
+              :class="{ active: orderOf(index) > 0 }"
+              @click="onClickImage(index)"
+            >
+              <span class="click-emoji">{{ EMOJI[img] || '❓' }}</span>
+              <span class="click-name">{{ NAME[img] || img }}</span>
+              <span v-if="orderOf(index) > 0" class="click-order">{{ orderOf(index) }}</span>
+            </div>
+          </div>
+          <div class="click-hint">
+            请依次点击：<b>鸟 → 猫 → 鱼 → 狗</b>（演示顺序）
+            <el-link type="primary" @click="resetClick">清空重选</el-link>
+            <el-link type="primary" @click="refreshClick">换一批</el-link>
+          </div>
+        </el-form-item>
+
         <el-button type="primary" class="submit" :loading="loading" @click="onSubmit">登 录</el-button>
       </el-form>
 
@@ -47,10 +82,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance } from 'element-plus'
-import { authApi } from '@/api'
+import { authApi, captchaApi } from '@/api'
 import { useUserStore } from '@/store/user'
 
 const router = useRouter()
@@ -62,22 +97,92 @@ const loading = ref(false)
 const registering = ref(false)
 const registerVisible = ref(false)
 
-const form = reactive({ username: 'student01', password: '123456' })
+const form = reactive({ username: 'student01', password: '123456', captchaCode: '' })
 const registerForm = reactive({ username: '', password: '', realName: '', roleCode: 'STUDENT' })
+
+const imageCaptcha = reactive({ captchaId: '', image: '' })
+const clickCaptcha = reactive({ captchaId: '', images: [] as string[] })
+const clickOrder = ref<number[]>([])
+
+// 后端演示返回的是图片文件名，前端用 emoji 占位渲染
+const EMOJI: Record<string, string> = {
+  'cat.jpg': '🐱',
+  'dog.jpg': '🐶',
+  'bird.jpg': '🐦',
+  'fish.jpg': '🐟'
+}
+const NAME: Record<string, string> = {
+  'cat.jpg': '猫',
+  'dog.jpg': '狗',
+  'bird.jpg': '鸟',
+  'fish.jpg': '鱼'
+}
 
 const rules = {
   username: [{ required: true, message: '请输入登录账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captchaCode: [{ required: true, message: '请输入图形验证码', trigger: 'blur' }]
+}
+
+function toImgSrc(img: string): string {
+  return img.startsWith('data:') ? img : `data:image/png;base64,${img}`
+}
+
+async function refreshImage() {
+  const data = await captchaApi.image()
+  imageCaptcha.captchaId = data.captchaId
+  imageCaptcha.image = data.image
+}
+
+async function refreshClick() {
+  const data = await captchaApi.click()
+  clickCaptcha.captchaId = data.captchaId
+  clickCaptcha.images = data.images
+  clickOrder.value = []
+}
+
+async function refreshCaptchas() {
+  form.captchaCode = ''
+  await Promise.all([refreshImage(), refreshClick()])
+}
+
+function onClickImage(index: number) {
+  if (clickOrder.value.includes(index)) return
+  clickOrder.value.push(index)
+}
+
+function resetClick() {
+  clickOrder.value = []
+}
+
+function orderOf(index: number): number {
+  const i = clickOrder.value.indexOf(index)
+  return i >= 0 ? i + 1 : 0
 }
 
 async function onSubmit() {
   if (!formRef.value) return
-  await formRef.value.validate()
+  const valid = await formRef.value.validate().catch(() => false)
+  if (!valid) return
+  if (clickOrder.value.length !== clickCaptcha.images.length) {
+    ElMessage.warning('请按顺序点选全部图片')
+    return
+  }
   loading.value = true
   try {
-    await userStore.login(form.username, form.password)
+    await userStore.login({
+      username: form.username,
+      password: form.password,
+      imageCaptchaId: imageCaptcha.captchaId,
+      captchaCode: form.captchaCode,
+      clickCaptchaId: clickCaptcha.captchaId,
+      clickCaptcha: [...clickOrder.value]
+    })
     ElMessage.success('登录成功')
     router.push((route.query.redirect as string) || '/dashboard')
+  } catch {
+    // 验证码一次性消费，登录失败后需重新获取
+    await refreshCaptchas()
   } finally {
     loading.value = false
   }
@@ -93,6 +198,8 @@ async function onRegister() {
     registering.value = false
   }
 }
+
+onMounted(refreshCaptchas)
 </script>
 
 <style scoped>
@@ -122,6 +229,84 @@ async function onRegister() {
   margin: 0 0 24px;
   color: #8a94a6;
   font-size: 13px;
+}
+
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.captcha-img {
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid #dcdfe6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.click-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.click-tile {
+  position: relative;
+  flex: 1;
+  height: 72px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+  background: #fafbfc;
+}
+
+.click-tile:hover {
+  border-color: #409eff;
+}
+
+.click-tile.active {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.click-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.click-name {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #5b6b82;
+}
+
+.click-order {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #409eff;
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.click-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #8a94a6;
+  line-height: 1.6;
 }
 
 .submit {

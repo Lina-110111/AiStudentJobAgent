@@ -19,6 +19,7 @@ public enum ResultCode {
     USER_NOT_FOUND(60002, "用户不存在"),
     PASSWORD_ERROR(60003, "用户名或密码错误"),
     USER_DISABLED(60004, "账号已被停用"),
+    CAPTCHA_ERROR(60005, "验证码错误或已过期"),
     RESUME_NOT_FOUND(60010, "简历不存在"),
     JOB_NOT_FOUND(60020, "岗位不存在"),
     JOB_OFFLINE(60021, "岗位已停止招聘"),

@@ -3,8 +3,11 @@ package com.campus.jobagent.modules.auth.dto;
 import com.campus.jobagent.modules.user.dto.UserVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 /**
  * 认证模块的请求 / 响应对象。
@@ -24,7 +27,23 @@ public final class AuthDtos {
 
             @Schema(description = "登录密码", example = "123456")
             @NotBlank(message = "密码不能为空")
-            String password) {
+            String password,
+
+            @Schema(description = "图形验证码ID")
+            @NotBlank(message = "图形验证码ID不能为空")
+            String imageCaptchaId,
+
+            @Schema(description = "图形验证码输入")
+            @NotBlank(message = "图形验证码不能为空")
+            String captchaCode,
+
+            @Schema(description = "顺序点选验证码ID")
+            @NotBlank(message = "顺序点选验证码ID不能为空")
+            String clickCaptchaId,
+
+            @Schema(description = "顺序点选验证码点击下标序列", example = "[2,0,3,1]")
+            @NotNull(message = "顺序点选验证码不能为空")
+            List<Integer> clickCaptcha) {
     }
 
     @Schema(description = "注册请求")

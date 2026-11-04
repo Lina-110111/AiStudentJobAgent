@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { authApi } from '@/api'
 import { clearToken, getToken, setToken } from '@/api/request'
-import type { RoleCode, UserInfo } from '@/types/api'
+import type { LoginPayload, RoleCode, UserInfo } from '@/types/api'
 
 interface UserState {
   token: string
@@ -19,8 +19,8 @@ export const useUserStore = defineStore('user', {
     realName: (state) => state.info?.realName || state.info?.username || ''
   },
   actions: {
-    async login(username: string, password: string) {
-      const data = await authApi.login({ username, password })
+    async login(payload: LoginPayload) {
+      const data = await authApi.login(payload)
       this.token = data.token
       this.info = data.user
       setToken(data.token)

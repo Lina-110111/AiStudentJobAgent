@@ -32,6 +32,7 @@ public class AuthService {
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CaptchaService captchaService;
 
     /** 注册：账号唯一性校验 + 密码加密存储。 */
     @Transactional(rollbackFor = Exception.class)
@@ -62,6 +63,11 @@ public class AuthService {
 
     /** 登录：校验账号密码并签发 JWT。 */
     public LoginResponse login(LoginRequest request) {
+        // 阶段4：登录前强制校验两种验证码，失败抛出业务异常，不进入登录逻辑
+        captchaService.verifyBeforeLogin(
+                request.imageCaptchaId(), request.captchaCode(),
+                request.clickCaptchaId(), request.clickCaptcha());
+
         SysUser user = sysUserMapper.selectOne(Wrappers.<SysUser>lambdaQuery()
                 .eq(SysUser::getUsername, request.username())
                 .last("limit 1"));
