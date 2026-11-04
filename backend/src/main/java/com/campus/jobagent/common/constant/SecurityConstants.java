@@ -21,6 +21,7 @@ public final class SecurityConstants {
     public static final String[] WHITE_LIST = {
             "/api/auth/login",
             "/api/auth/sms/**",
+            "/api/auth/email/**",
             "/api/auth/register",
             "/api/auth/captcha",
             "/api/policy/public/**",
