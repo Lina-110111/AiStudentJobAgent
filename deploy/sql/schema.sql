@@ -120,7 +120,7 @@ CREATE TABLE `internship_apply` (
     `mentor_id`       BIGINT               DEFAULT NULL COMMENT '企业导师',
     `teacher_id`      BIGINT               DEFAULT NULL COMMENT '校内指导教师',
     `status`          VARCHAR(16) NOT NULL DEFAULT 'RUNNING' COMMENT 'RUNNING/PASSED/REJECTED',
-    `current_node`    VARCHAR(32) NOT NULL DEFAULT 'MENTOR_REVIEW' COMMENT '当前流程节点',
+    `current_node`    VARCHAR(32) NOT NULL DEFAULT 'MENTOR_REVIEW' COMMENT '当前流程节点：MENTOR_REVIEW/COUNSELOR_REVIEW/COLLEGE_REVIEW/PASSED/REJECTED',
     `flow_trace_json` LONGTEXT             DEFAULT NULL COMMENT '流程流转轨迹',
     `start_date`      DATE                 DEFAULT NULL,
     `end_date`        DATE                 DEFAULT NULL,
@@ -171,7 +171,7 @@ CREATE TABLE `interview_session` (
     `answers_json`   LONGTEXT             DEFAULT NULL COMMENT '作答与逐题评估',
     `report_json`    LONGTEXT             DEFAULT NULL COMMENT '训练报告',
     `total_score`    INT                  DEFAULT NULL,
-    `status`         VARCHAR(16) NOT NULL DEFAULT 'RUNNING',
+    `status`         VARCHAR(16) NOT NULL DEFAULT 'RUNNING' COMMENT 'RUNNING/FINISHED',
     `create_time`    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `update_time`    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted`        TINYINT     NOT NULL DEFAULT 0,
@@ -202,3 +202,47 @@ CREATE TABLE `policy_item` (
     KEY `idx_category` (`category`),
     FULLTEXT KEY `ft_title_content` (`title`, `content`) WITH PARSER ngram
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '就业政策表';
+-- =============================================================
+-- RBAC 权限体系（仿禅道：用户-角色-权限 三层）
+-- =============================================================
+
+-- 角色表
+DROP TABLE IF EXISTS `sys_role`;
+CREATE TABLE `sys_role` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `role_code` VARCHAR(32) NOT NULL UNIQUE COMMENT '角色编码，如 STUDENT',
+  `role_name` VARCHAR(64) NOT NULL COMMENT '角色名称，如 学生',
+  `description` VARCHAR(255) DEFAULT NULL,
+  `status` TINYINT NOT NULL DEFAULT 1,
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色表';
+
+-- 权限表（禅道风格：模块:操作）
+DROP TABLE IF EXISTS `sys_permission`;
+CREATE TABLE `sys_permission` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `perm_code` VARCHAR(64) NOT NULL UNIQUE COMMENT '权限编码，如 job:add / job:edit / dashboard:view',
+  `perm_name` VARCHAR(64) NOT NULL COMMENT '权限名称，如 新增岗位',
+  `module` VARCHAR(32) NOT NULL COMMENT '所属模块：job / resume / internship / dashboard / user',
+  `type` VARCHAR(16) NOT NULL DEFAULT 'BUTTON' COMMENT 'MENU菜单 / BUTTON按钮 / API接口',
+  `url` VARCHAR(128) DEFAULT NULL COMMENT '对应前端路由或接口路径',
+  `status` TINYINT NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限表';
+
+-- 用户-角色 关联表
+DROP TABLE IF EXISTS `sys_user_role`;
+CREATE TABLE `sys_user_role` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `role_id` BIGINT NOT NULL,
+  UNIQUE KEY `uk_user_role` (`user_id`,`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户角色关联表';
+
+-- 角色-权限 关联表
+DROP TABLE IF EXISTS `sys_role_permission`;
+CREATE TABLE `sys_role_permission` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+  `role_id` BIGINT NOT NULL,
+  `perm_id` BIGINT NOT NULL,
+  UNIQUE KEY `uk_role_perm` (`role_id`,`perm_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色权限关联表';

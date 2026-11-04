@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * 认证服务：注册、登录、当前用户。
@@ -32,6 +33,7 @@ public class AuthService {
     private final SysUserMapper sysUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final LoginUserService loginUserService;
     private final CaptchaService captchaService;
 
     /** 注册：账号唯一性校验 + 密码加密存储。 */
@@ -77,7 +79,7 @@ public class AuthService {
         if (user.getStatus() == null || user.getStatus() != 1) {
             throw BizException.of(ResultCode.USER_DISABLED);
         }
-        LoginUser loginUser = LoginUserService.toLoginUser(user);
+        LoginUser loginUser = loginUserService.toLoginUser(user);
         String token = jwtTokenProvider.generateToken(loginUser);
         return new LoginResponse(token, jwtTokenProvider.getExpireMillis(), UserVO.from(user));
     }
@@ -89,5 +91,18 @@ public class AuthService {
             throw BizException.of(ResultCode.USER_NOT_FOUND);
         }
         return UserVO.from(user);
+    }
+
+    /** 生成登录令牌（短信登录等场景复用）。 */
+    public Map<String, Object> generateTokenForUser(SysUser user) {
+        LoginUser loginUser = loginUserService.toLoginUser(user);
+        String token = jwtTokenProvider.generateToken(loginUser);
+        return Map.of(
+                "token", token,
+                "userId", user.getId(),
+                "username", user.getUsername(),
+                "realName", user.getRealName() != null ? user.getRealName() : "",
+                "role", user.getRoleCode()
+        );
     }
 }
