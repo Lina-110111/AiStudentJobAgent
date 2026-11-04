@@ -8,21 +8,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wf.captcha.SpecCaptcha;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 验证码服务：两种防机器人验证码。
  *
- * <p>1. 图形数字验证码：easy-captcha 生成，答案存 Redis，2 分钟过期。
- * <p>2. 顺序点选验证码：演示简化版，Redis 存正确点击下标序列。
- * <p>两种验证码均为一次性消费：无论校验成功或失败都删除 Redis 记录，防重放。
+ * <p>1. 图形数字验证码：easy-captcha 生成，答案内存存储，2 分钟过期。
+ * <p>2. 顺序点选验证码：演示简化版，内存存正确点击下标序列。
+ * <p>两种验证码均为一次性消费：无论校验成功或失败都删除记录，防重放。
+ * <p>注：生产环境应使用 Redis 存储，此处本地演示用 ConcurrentHashMap 替代。
  */
 @Slf4j
 @Service
@@ -31,8 +33,10 @@ public class CaptchaService {
 
     private static final Duration EXPIRE = Duration.ofMinutes(2);
 
-    private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+
+    // 内存存储验证码：key -> [答案, 过期时间戳]
+    private final Map<String, Object[]> captchaStore = new ConcurrentHashMap<>();
 
     /** 第一种：图形数字验证码。返回 captchaId + base64 图片。 */
     public Map<String, Object> image() {
@@ -40,21 +44,22 @@ public class CaptchaService {
         SpecCaptcha captcha = new SpecCaptcha(130, 48, 6);
         String captchaId = UUID.randomUUID().toString();
         String code = captcha.text().toLowerCase();
-        // redis key: captcha:{id}，2 分钟过期
-        stringRedisTemplate.opsForValue().set("captcha:" + captchaId, code, EXPIRE);
+        // 存内存，2分钟过期
+        captchaStore.put("captcha:" + captchaId, new Object[]{code, Instant.now().plus(EXPIRE).toEpochMilli()});
         return Map.of(
                 "captchaId", captchaId,
                 "image", captcha.toBase64()
         );
     }
 
-    /** 第二种：顺序点选验证码。返回 captchaId + 图片名列表，Redis 存正确点击顺序。 */
+    /** 第二种：顺序点选验证码。返回 captchaId + 图片名列表，内存存正确点击顺序。 */
     public Map<String, Object> click() {
         String captchaId = UUID.randomUUID().toString();
         // 正确点击顺序：[2,0,3,1] —— 依次点击下标 2→0→3→1
         List<Integer> answer = Arrays.asList(2, 0, 3, 1);
         try {
-            stringRedisTemplate.opsForValue().set("click:" + captchaId, objectMapper.writeValueAsString(answer), EXPIRE);
+            String json = objectMapper.writeValueAsString(answer);
+            captchaStore.put("click:" + captchaId, new Object[]{json, Instant.now().plus(EXPIRE).toEpochMilli()});
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("序列化点选验证码答案失败", e);
         }
@@ -72,11 +77,16 @@ public class CaptchaService {
             return false;
         }
         String key = "captcha:" + captchaId;
-        // GETDEL 保证读取与删除原子完成，避免并发请求重复消费同一个验证码。
-        String saved = stringRedisTemplate.opsForValue().getAndDelete(key);
-        if (saved == null) {
+        Object[] entry = captchaStore.remove(key);
+        if (entry == null) {
             return false;
         }
+        // 检查是否过期
+        long expireAt = (Long) entry[1];
+        if (Instant.now().toEpochMilli() > expireAt) {
+            return false;
+        }
+        String saved = (String) entry[0];
         boolean pass = saved.equalsIgnoreCase(inputCode.trim());
         return pass;
     }
@@ -87,10 +97,16 @@ public class CaptchaService {
             return false;
         }
         String key = "click:" + captchaId;
-        String jsonAnswer = stringRedisTemplate.opsForValue().getAndDelete(key);
-        if (jsonAnswer == null) {
+        Object[] entry = captchaStore.remove(key);
+        if (entry == null) {
             return false;
         }
+        // 检查是否过期
+        long expireAt = (Long) entry[1];
+        if (Instant.now().toEpochMilli() > expireAt) {
+            return false;
+        }
+        String jsonAnswer = (String) entry[0];
         List<Integer> correct;
         try {
             correct = objectMapper.readValue(jsonAnswer, new TypeReference<List<Integer>>() {
