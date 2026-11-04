@@ -23,7 +23,7 @@ public final class SecurityConstants {
             "/api/auth/sms/**",
             "/api/auth/email/**",
             "/api/auth/register",
-            "/api/auth/captcha",
+            "/api/captcha/**",
             "/api/policy/public/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",

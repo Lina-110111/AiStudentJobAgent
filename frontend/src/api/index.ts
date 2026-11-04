@@ -1,12 +1,28 @@
 import { http } from './request'
-import type { DashboardData, JobMatch, JobPost, LoginResponse, PageData, UserInfo } from '@/types/api'
+import type {
+  ClickCaptcha,
+  DashboardData,
+  ImageCaptcha,
+  JobMatch,
+  JobPost,
+  LoginPayload,
+  LoginResponse,
+  PageData,
+  UserInfo
+} from '@/types/api'
 
 /** 认证与用户档案 */
 export const authApi = {
-  login: (data: { username: string; password: string }) => http.post<LoginResponse>('/auth/login', data),
+  login: (data: LoginPayload) => http.post<LoginResponse>('/auth/login', data),
   register: (data: Record<string, unknown>) => http.post<UserInfo>('/auth/register', data),
   me: () => http.get<UserInfo>('/auth/me'),
   updateProfile: (data: Record<string, unknown>) => http.put<UserInfo>('/users/me', data)
+}
+
+/** 验证码 */
+export const captchaApi = {
+  image: () => http.get<ImageCaptcha>('/captcha/image'),
+  click: () => http.get<ClickCaptcha>('/captcha/click')
 }
 
 /** 岗位匹配与申请 */

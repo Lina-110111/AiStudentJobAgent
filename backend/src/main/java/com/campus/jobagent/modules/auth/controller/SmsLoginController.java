@@ -1,7 +1,9 @@
 package com.campus.jobagent.modules.auth.controller;
 
 import com.campus.jobagent.common.api.Result;
+import com.campus.jobagent.common.api.ResultCode;
 import com.campus.jobagent.modules.auth.service.AuthService;
+import com.campus.jobagent.modules.auth.service.CaptchaService;
 import com.campus.jobagent.modules.auth.service.SmsService;
 import com.campus.jobagent.modules.user.entity.SysUser;
 import com.campus.jobagent.modules.user.mapper.SysUserMapper;
@@ -9,6 +11,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -19,12 +22,17 @@ public class SmsLoginController {
     private final SmsService smsService;
     private final AuthService authService;
     private final SysUserMapper sysUserMapper;
+    private final CaptchaService captchaService;
 
     /**
-     * 发送短信验证码
+     * 发送短信验证码（先校验图形验证码，防止短信轰炸）
      */
     @PostMapping("/send-code")
     public Result<Void> sendCode(@RequestBody SendCodeRequest request) {
+        // 阶段4：发送短信码前先校验图形验证码，一次性消费
+        if (!captchaService.verifyImage(request.getCaptchaId(), request.getCaptchaCode())) {
+            return Result.fail(ResultCode.CAPTCHA_ERROR, "图形验证码错误或已过期");
+        }
         smsService.sendSmsCode(request.getPhone());
         return Result.ok();
     }
@@ -34,7 +42,12 @@ public class SmsLoginController {
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> smsLogin(@RequestBody SmsLoginRequest request) {
-        // 1. 校验验证码
+        // 阶段4：短信登录同样强制校验两种验证码，失败抛出业务异常，不进入登录逻辑
+        captchaService.verifyBeforeLogin(
+                request.getImageCaptchaId(), request.getCaptchaCode(),
+                request.getClickCaptchaId(), request.getClickCaptcha());
+
+        // 1. 校验短信验证码
         boolean valid = smsService.validateCode(request.getPhone(), request.getCode());
         if (!valid) {
             return Result.fail(40001, "验证码错误或已过期");
@@ -46,7 +59,7 @@ public class SmsLoginController {
                 .eq(SysUser::getPhone, request.getPhone())
                 .eq(SysUser::getDeleted, 0)
         );
-        
+
         if (user == null) {
             return Result.fail(40002, "该手机号未注册");
         }
@@ -59,11 +72,17 @@ public class SmsLoginController {
     @Data
     public static class SendCodeRequest {
         private String phone;
+        private String captchaId;
+        private String captchaCode;
     }
 
     @Data
     public static class SmsLoginRequest {
         private String phone;
         private String code;
+        private String imageCaptchaId;
+        private String captchaCode;
+        private String clickCaptchaId;
+        private List<Integer> clickCaptcha;
     }
 }

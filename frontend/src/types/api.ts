@@ -40,6 +40,28 @@ export interface LoginResponse {
   user: UserInfo
 }
 
+/** 登录请求参数（阶段4：携带两种验证码） */
+export interface LoginPayload {
+  username: string
+  password: string
+  imageCaptchaId: string
+  captchaCode: string
+  clickCaptchaId: string
+  clickCaptcha: number[]
+}
+
+/** 图形验证码响应 */
+export interface ImageCaptcha {
+  captchaId: string
+  image: string
+}
+
+/** 顺序点选验证码响应 */
+export interface ClickCaptcha {
+  captchaId: string
+  images: string[]
+}
+
 export interface JobPost {
   id: number
   title: string
