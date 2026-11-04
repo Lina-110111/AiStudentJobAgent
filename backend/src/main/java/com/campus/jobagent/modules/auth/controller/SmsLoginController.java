@@ -1,6 +1,7 @@
 package com.campus.jobagent.modules.auth.controller;
 
 import com.campus.jobagent.common.api.Result;
+import com.campus.jobagent.common.api.ResultCode;
 import com.campus.jobagent.modules.auth.service.AuthService;
 import com.campus.jobagent.modules.auth.service.CaptchaService;
 import com.campus.jobagent.modules.auth.service.SmsService;
@@ -24,10 +25,14 @@ public class SmsLoginController {
     private final CaptchaService captchaService;
 
     /**
-     * 发送短信验证码
+     * 发送短信验证码（先校验图形验证码，防止短信轰炸）
      */
     @PostMapping("/send-code")
     public Result<Void> sendCode(@RequestBody SendCodeRequest request) {
+        // 阶段4：发送短信码前先校验图形验证码，一次性消费
+        if (!captchaService.verifyImage(request.getCaptchaId(), request.getCaptchaCode())) {
+            return Result.fail(ResultCode.CAPTCHA_ERROR, "图形验证码错误或已过期");
+        }
         smsService.sendSmsCode(request.getPhone());
         return Result.ok();
     }
@@ -67,6 +72,8 @@ public class SmsLoginController {
     @Data
     public static class SendCodeRequest {
         private String phone;
+        private String captchaId;
+        private String captchaCode;
     }
 
     @Data
