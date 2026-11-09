@@ -136,6 +136,27 @@
               </div>
             </el-form-item>
 
+            <el-form-item label="顺序点选验证码">
+              <div class="click-row">
+                <div
+                  v-for="(img, index) in clickCaptcha.images"
+                  :key="img + index"
+                  class="click-tile"
+                  :class="{ active: orderOf(index) > 0 }"
+                  @click="onClickImage(index)"
+                >
+                  <span class="click-emoji">{{ EMOJI[img] || '❓' }}</span>
+                  <span class="click-name">{{ NAME[img] || img }}</span>
+                  <span v-if="orderOf(index) > 0" class="click-order">{{ orderOf(index) }}</span>
+                </div>
+              </div>
+              <div class="click-hint">
+                请依次点击：<b>{{ clickHintText }}</b>
+                <el-link type="primary" @click="resetClick">清空重选</el-link>
+                <el-link type="primary" @click="refreshClick">换一批</el-link>
+              </div>
+            </el-form-item>
+
             <el-button type="primary" class="submit" :loading="loading" @click="onEmailSubmit">登 录</el-button>
           </el-form>
         </el-tab-pane>
@@ -416,13 +437,19 @@ async function onEmailSubmit() {
   if (!emailFormRef.value) return
   const valid = await emailFormRef.value.validate().catch(() => false)
   if (!valid) return
+  if (clickOrder.value.length !== clickCaptcha.images.length) {
+    ElMessage.warning('请按顺序点选全部图片')
+    return
+  }
   loading.value = true
   try {
     const res = await authApi.emailLogin({
       email: emailForm.email,
       code: emailForm.code,
       imageCaptchaId: imageCaptcha.captchaId,
-      captchaCode: emailForm.captchaCode
+      captchaCode: emailForm.captchaCode,
+      clickCaptchaId: clickCaptcha.captchaId,
+      clickCaptcha: [...clickOrder.value]
     })
     setToken(res.token)
     userStore.token = res.token
@@ -430,9 +457,8 @@ async function onEmailSubmit() {
     ElMessage.success('登录成功')
     router.push((route.query.redirect as string) || '/dashboard')
   } catch {
-    // 图形验证码一次性消费，登录失败后刷新
-    emailForm.captchaCode = ''
-    await refreshImage()
+    // 两种验证码一次性消费，登录失败后统一刷新
+    await refreshCaptchas()
   } finally {
     loading.value = false
   }

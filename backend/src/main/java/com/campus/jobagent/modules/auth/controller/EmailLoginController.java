@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -41,10 +42,10 @@ public class EmailLoginController {
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> emailLogin(@RequestBody EmailLoginRequest request) {
-        // 阶段4：邮箱登录同样强制校验图形验证码，失败直接返回，不进入登录逻辑
-        if (!captchaService.verifyImage(request.getImageCaptchaId(), request.getCaptchaCode())) {
-            return Result.fail(ResultCode.CAPTCHA_ERROR, "图形验证码错误或已过期");
-        }
+        // 阶段4：邮箱登录同样强制校验两种验证码（图形 + 顺序点选），失败直接返回，不进入登录逻辑
+        captchaService.verifyBeforeLogin(
+                request.getImageCaptchaId(), request.getCaptchaCode(),
+                request.getClickCaptchaId(), request.getClickCaptcha());
 
         // 1. 校验邮箱验证码
         boolean valid = emailService.validateCode(request.getEmail(), request.getCode());
@@ -81,5 +82,7 @@ public class EmailLoginController {
         private String code;
         private String imageCaptchaId;
         private String captchaCode;
+        private String clickCaptchaId;
+        private List<Integer> clickCaptcha;
     }
 }

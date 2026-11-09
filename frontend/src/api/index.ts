@@ -24,8 +24,14 @@ export const authApi = {
   // 邮箱登录
   sendEmailCode: (data: { email: string; captchaId: string; captchaCode: string }) =>
     http.post<void>('/auth/email/send-code', data),
-  emailLogin: (data: { email: string; code: string; imageCaptchaId: string; captchaCode: string }) =>
-    http.post<LoginResponse>('/auth/email/login', data)
+  emailLogin: (data: {
+    email: string
+    code: string
+    imageCaptchaId: string
+    captchaCode: string
+    clickCaptchaId: string
+    clickCaptcha: number[]
+  }) => http.post<LoginResponse>('/auth/email/login', data)
 }
 
 /** 验证码 */
