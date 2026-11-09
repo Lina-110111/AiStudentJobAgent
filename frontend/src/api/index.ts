@@ -16,7 +16,16 @@ export const authApi = {
   login: (data: LoginPayload) => http.post<LoginResponse>('/auth/login', data),
   register: (data: Record<string, unknown>) => http.post<UserInfo>('/auth/register', data),
   me: () => http.get<UserInfo>('/auth/me'),
-  updateProfile: (data: Record<string, unknown>) => http.put<UserInfo>('/users/me', data)
+  updateProfile: (data: Record<string, unknown>) => http.put<UserInfo>('/users/me', data),
+  // 短信登录
+  sendSmsCode: (data: { phone: string; captchaId: string; captchaCode: string }) =>
+    http.post<void>('/auth/sms/send-code', data),
+  smsLogin: (data: Record<string, unknown>) => http.post<LoginResponse>('/auth/sms/login', data),
+  // 邮箱登录
+  sendEmailCode: (data: { email: string; captchaId: string; captchaCode: string }) =>
+    http.post<void>('/auth/email/send-code', data),
+  emailLogin: (data: { email: string; code: string; imageCaptchaId: string; captchaCode: string }) =>
+    http.post<LoginResponse>('/auth/email/login', data)
 }
 
 /** 验证码 */

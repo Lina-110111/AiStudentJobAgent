@@ -60,6 +60,8 @@ export interface ImageCaptcha {
 export interface ClickCaptcha {
   captchaId: string
   images: string[]
+  /** 正确点击顺序的中文名提示，每次随机生成 */
+  hint?: string[]
 }
 
 export interface JobPost {

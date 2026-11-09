@@ -10,9 +10,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,7 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 验证码服务：两种防机器人验证码。
  *
  * <p>1. 图形数字验证码：easy-captcha 生成，答案内存存储，2 分钟过期。
- * <p>2. 顺序点选验证码：演示简化版，内存存正确点击下标序列。
+ * <p>2. 顺序点选验证码：演示简化版，内存存正确点击下标序列；每次随机抽图并打乱，
+ * 保证"换一批"能换出新的一组图片与点击顺序。
  * <p>两种验证码均为一次性消费：无论校验成功或失败都删除记录，防重放。
  * <p>注：生产环境应使用 Redis 存储，此处本地演示用 ConcurrentHashMap 替代。
  */
@@ -32,6 +36,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CaptchaService {
 
     private static final Duration EXPIRE = Duration.ofMinutes(2);
+
+    /** 点选验证码每批展示的图片数量 */
+    private static final int CLICK_TILE_COUNT = 4;
+
+    /** 动物图片池：文件名 -> 中文名，用于随机抽图与提示文案 */
+    private static final Map<String, String> ANIMAL_POOL = new LinkedHashMap<>();
+
+    static {
+        ANIMAL_POOL.put("cat.jpg", "猫");
+        ANIMAL_POOL.put("dog.jpg", "狗");
+        ANIMAL_POOL.put("bird.jpg", "鸟");
+        ANIMAL_POOL.put("fish.jpg", "鱼");
+        ANIMAL_POOL.put("tiger.jpg", "虎");
+        ANIMAL_POOL.put("rabbit.jpg", "兔");
+        ANIMAL_POOL.put("panda.jpg", "熊猫");
+        ANIMAL_POOL.put("monkey.jpg", "猴");
+    }
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final ObjectMapper objectMapper;
 
@@ -52,22 +75,51 @@ public class CaptchaService {
         );
     }
 
-    /** 第二种：顺序点选验证码。返回 captchaId + 图片名列表，内存存正确点击顺序。 */
+    /**
+     * 第二种：顺序点选验证码。
+     *
+     * <p>从图片池随机抽 4 张并打乱展示顺序，再随机生成一组点击顺序，
+     * 因此每次调用（前端"换一批"）都会得到不同的图片组合与不同的正确顺序。
+     *
+     * @return captchaId、images（展示顺序的文件名）、hint（正确点击顺序的中文名，供前端提示）
+     */
     public Map<String, Object> click() {
         String captchaId = UUID.randomUUID().toString();
-        // 正确点击顺序：[2,0,3,1] —— 依次点击下标 2→0→3→1
-        List<Integer> answer = Arrays.asList(2, 0, 3, 1);
+
+        // 1. 随机抽取图片并打乱展示顺序
+        List<Map.Entry<String, String>> pool = new ArrayList<>(ANIMAL_POOL.entrySet());
+        Collections.shuffle(pool, RANDOM);
+        List<Map.Entry<String, String>> picked = new ArrayList<>(pool.subList(0, CLICK_TILE_COUNT));
+
+        List<String> images = new ArrayList<>(CLICK_TILE_COUNT);
+        for (Map.Entry<String, String> entry : picked) {
+            images.add(entry.getKey());
+        }
+
+        // 2. 随机生成正确点击顺序：answer 中的元素是"第 N 次点击的图片下标"
+        List<Integer> answer = new ArrayList<>(CLICK_TILE_COUNT);
+        for (int i = 0; i < CLICK_TILE_COUNT; i++) {
+            answer.add(i);
+        }
+        Collections.shuffle(answer, RANDOM);
+
+        // 3. 按正确顺序生成提示文案（如 鸟 → 猫 → 鱼 → 狗）
+        List<String> hint = new ArrayList<>(CLICK_TILE_COUNT);
+        for (Integer index : answer) {
+            hint.add(picked.get(index).getValue());
+        }
+
         try {
             String json = objectMapper.writeValueAsString(answer);
             captchaStore.put("click:" + captchaId, new Object[]{json, Instant.now().plus(EXPIRE).toEpochMilli()});
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("序列化点选验证码答案失败", e);
         }
-        // 演示使用图片文件名，前端自行准备四张图片
-        List<String> images = Arrays.asList("cat.jpg", "dog.jpg", "bird.jpg", "fish.jpg");
+
         return Map.of(
                 "captchaId", captchaId,
-                "images", images
+                "images", images,
+                "hint", hint
         );
     }
 
