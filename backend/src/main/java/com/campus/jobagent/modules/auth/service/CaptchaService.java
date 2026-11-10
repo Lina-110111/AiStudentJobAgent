@@ -179,4 +179,46 @@ public class CaptchaService {
             throw BizException.of(ResultCode.CAPTCHA_ERROR, "图片点选顺序错误");
         }
     }
+
+    /** 演示用：只读导出内存中的验证码记录，不消费任何数据。 */
+    public List<Map<String, Object>> snapshot() {
+        long now = Instant.now().toEpochMilli();
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Map.Entry<String, Object[]> entry : captchaStore.entrySet()) {
+            Object[] value = entry.getValue();
+            if (value == null || value.length < 2) {
+                continue;
+            }
+            String key = entry.getKey();
+            long expireAt = (Long) value[1];
+            long remaining = Math.max(0L, (expireAt - now) / 1000L);
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("key", key);
+            item.put("kind", key.startsWith("click:") ? "顺序点选验证码" : "图形验证码");
+            item.put("valueMasked", maskValue(key, (String) value[0]));
+            item.put("remainingSeconds", remaining);
+            list.add(item);
+        }
+        list.sort((a, b) -> String.valueOf(a.get("key")).compareTo(String.valueOf(b.get("key"))));
+        return list;
+    }
+
+    /** 演示用：当前验证码有效期（秒）。 */
+    public long ttlSeconds() {
+        return EXPIRE.toSeconds();
+    }
+
+    /** 值打码：图形验证码保留首尾各一位，点选序列把数字全部替换为星号。 */
+    private String maskValue(String key, String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return "***";
+        }
+        if (key.startsWith("click:")) {
+            return raw.replaceAll("\\d", "*");
+        }
+        if (raw.length() <= 2) {
+            return "**";
+        }
+        return raw.charAt(0) + "**" + raw.charAt(raw.length() - 1);
+    }
 }
