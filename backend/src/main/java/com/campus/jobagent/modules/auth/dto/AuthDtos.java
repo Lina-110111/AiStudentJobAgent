@@ -79,4 +79,12 @@ public final class AuthDtos {
 
             UserVO user) {
     }
+
+    @Schema(description = "当前登录用户（附带细粒度权限码）")
+    public record MeResponse(
+            UserVO user,
+
+            @Schema(description = "该用户拥有的权限码，如 job:view、job:add、resume:upload")
+            List<String> permissions) {
+    }
 }

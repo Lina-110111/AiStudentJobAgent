@@ -40,6 +40,19 @@ export interface LoginResponse {
   user: UserInfo
 }
 
+/** 当前登录用户（含该用户从 RBAC 表查出来的权限码） */
+export interface MeResponse {
+  user: UserInfo
+  permissions: string[]
+}
+
+/** 角色及其拥有的权限码（角色-权限矩阵一行） */
+export interface RolePerm {
+  roleCode: RoleCode
+  roleName: string
+  permissions: string[]
+}
+
 /** 登录请求参数（阶段4：携带两种验证码） */
 export interface LoginPayload {
   username: string
@@ -108,4 +121,6 @@ export interface MenuItem {
   title: string
   icon: string
   roles: RoleCode[]
+  /** 该菜单需要的权限码，为空表示只按角色判断 */
+  perm?: string
 }

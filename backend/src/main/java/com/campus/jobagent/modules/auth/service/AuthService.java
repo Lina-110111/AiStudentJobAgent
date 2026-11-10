@@ -6,9 +6,11 @@ import com.campus.jobagent.common.constant.RoleCode;
 import com.campus.jobagent.common.exception.BizException;
 import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginRequest;
 import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginResponse;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.MeResponse;
 import com.campus.jobagent.modules.auth.dto.AuthDtos.RegisterRequest;
 import com.campus.jobagent.modules.user.dto.UserVO;
 import com.campus.jobagent.modules.user.entity.SysUser;
+import com.campus.jobagent.modules.user.mapper.SysPermissionMapper;
 import com.campus.jobagent.modules.user.mapper.SysUserMapper;
 import com.campus.jobagent.security.JwtTokenProvider;
 import com.campus.jobagent.security.LoginUser;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,6 +34,7 @@ import java.util.Map;
 public class AuthService {
 
     private final SysUserMapper sysUserMapper;
+    private final SysPermissionMapper sysPermissionMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final LoginUserService loginUserService;
@@ -91,6 +95,18 @@ public class AuthService {
             throw BizException.of(ResultCode.USER_NOT_FOUND);
         }
         return UserVO.from(user);
+    }
+
+    /**
+     * 查询当前登录用户，并附带该用户从 RBAC 表里查出来的细粒度权限码。
+     *
+     * <p>前端据此做按钮级显隐（hasPerm），后端 {@code @PreAuthorize} 做最终拦截，
+     * 两边用的是同一份权限数据。
+     */
+    public MeResponse currentUserWithPermissions(Long userId) {
+        UserVO vo = currentUser(userId);
+        List<String> permissions = sysPermissionMapper.findPermCodesByUserId(userId);
+        return new MeResponse(vo, permissions == null ? List.of() : permissions);
     }
 
     /** 生成登录令牌（短信登录等场景复用）。 */

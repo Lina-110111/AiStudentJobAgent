@@ -28,7 +28,7 @@
           <template #default="{ row }">
             <el-button v-if="isStudent" link type="primary" @click="match(row)">智能匹配</el-button>
             <el-button v-if="isStudent" link type="success" @click="apply(row)">一键投递</el-button>
-            <el-button v-if="!isStudent" link type="danger" @click="offline(row)">下线</el-button>
+            <el-button v-if="canOffline" link type="danger" @click="offline(row)">下线</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -100,8 +100,11 @@ import { useUserStore } from '@/store/user'
 import type { JobMatch, JobPost } from '@/types/api'
 
 const userStore = useUserStore()
+// 学生专属操作（智能匹配、一键投递）用角色判断
 const isStudent = computed(() => userStore.roleCode === 'STUDENT')
-const canPublish = computed(() => ['HR', 'COUNSELOR', 'COLLEGE_ADMIN'].includes(userStore.roleCode))
+// 按钮级权限：显不显示由后端下发的权限码决定，不再写死角色
+const canPublish = computed(() => userStore.hasPerm('job:add'))
+const canOffline = computed(() => userStore.hasPerm('job:delete'))
 
 const list = ref<JobPost[]>([])
 const total = ref(0)

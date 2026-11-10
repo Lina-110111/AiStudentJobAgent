@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface SysPermissionMapper {
@@ -20,4 +21,18 @@ public interface SysPermissionMapper {
             WHERE ur.user_id = #{userId} AND p.status = 1
             """)
     List<String> findPermCodesByUserId(Long userId);
+
+    /**
+     * 查询全部角色及其权限码（角色-权限矩阵）。
+     * 返回列：roleCode / roleName / permCode。
+     */
+    @Select("""
+            SELECT r.role_code AS roleCode, r.role_name AS roleName, p.perm_code AS permCode
+            FROM sys_role r
+            LEFT JOIN sys_role_permission rp ON rp.role_id = r.id
+            LEFT JOIN sys_permission p ON p.id = rp.perm_id AND p.status = 1
+            WHERE r.status = 1
+            ORDER BY r.id, p.id
+            """)
+    List<Map<String, Object>> findRolePermRows();
 }

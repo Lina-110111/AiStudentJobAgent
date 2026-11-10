@@ -4,6 +4,7 @@ import com.campus.jobagent.common.api.Result;
 import com.campus.jobagent.common.util.SecurityUtils;
 import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginRequest;
 import com.campus.jobagent.modules.auth.dto.AuthDtos.LoginResponse;
+import com.campus.jobagent.modules.auth.dto.AuthDtos.MeResponse;
 import com.campus.jobagent.modules.auth.dto.AuthDtos.RegisterRequest;
 import com.campus.jobagent.modules.auth.service.AuthService;
 import com.campus.jobagent.modules.user.dto.UserVO;
@@ -40,9 +41,9 @@ public class AuthController {
         return Result.ok("登录成功", authService.login(request));
     }
 
-    @Operation(summary = "获取当前登录用户")
+    @Operation(summary = "获取当前登录用户（含权限码）")
     @GetMapping("/me")
-    public Result<UserVO> me() {
-        return Result.ok(authService.currentUser(SecurityUtils.getUserId()));
+    public Result<MeResponse> me() {
+        return Result.ok(authService.currentUserWithPermissions(SecurityUtils.getUserId()));
     }
 }

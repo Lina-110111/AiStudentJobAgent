@@ -22,6 +22,9 @@
               <el-icon><User /></el-icon>
               {{ userStore.realName }}
               <el-tag size="small" class="role-tag">{{ userStore.info?.roleLabel }}</el-tag>
+              <el-tag size="small" type="info" class="role-tag">
+                {{ userStore.permissions.length }} 项权限
+              </el-tag>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -52,7 +55,16 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const visibleMenus = computed(() =>
-  menus.filter((menu) => !userStore.info || menu.roles.includes(userStore.info.roleCode))
+  menus.filter((menu) => {
+    if (!userStore.info) {
+      return false
+    }
+    if (!menu.roles.includes(userStore.info.roleCode)) {
+      return false
+    }
+    // 配了权限码的菜单，还要校验当前用户是否真的拥有该权限
+    return !menu.perm || userStore.hasPerm(menu.perm)
+  })
 )
 
 async function onCommand(command: string) {

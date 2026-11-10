@@ -7,7 +7,9 @@ import type {
   JobPost,
   LoginPayload,
   LoginResponse,
+  MeResponse,
   PageData,
+  RolePerm,
   UserInfo
 } from '@/types/api'
 
@@ -15,7 +17,7 @@ import type {
 export const authApi = {
   login: (data: LoginPayload) => http.post<LoginResponse>('/auth/login', data),
   register: (data: Record<string, unknown>) => http.post<UserInfo>('/auth/register', data),
-  me: () => http.get<UserInfo>('/auth/me'),
+  me: () => http.get<MeResponse>('/auth/me'),
   updateProfile: (data: Record<string, unknown>) => http.put<UserInfo>('/users/me', data),
   // 短信登录
   sendSmsCode: (data: { phone: string; captchaId: string; captchaCode: string }) =>
@@ -61,4 +63,9 @@ export const jobApi = {
 /** 就业数据看板 */
 export const dashboardApi = {
   overview: () => http.get<DashboardData>('/dashboard/overview')
+}
+
+/** RBAC 角色-权限矩阵（仅拥有 user:manage 权限的角色可访问） */
+export const rbacApi = {
+  matrix: () => http.get<RolePerm[]>('/rbac/matrix')
 }
