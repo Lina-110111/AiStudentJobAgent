@@ -31,7 +31,12 @@ export const authApi = {
     captchaCode: string
     clickCaptchaId: string
     clickCaptcha: number[]
-  }) => http.post<LoginResponse>('/auth/email/login', data)
+  }) => http.post<LoginResponse>('/auth/email/login', data),
+  // 忘记密码：手机号或邮箱收验证码后重置
+  sendResetCode: (data: { account: string; captchaId: string; captchaCode: string }) =>
+    http.post<{ channel: string; maskedAccount: string }>('/auth/password/send-code', data),
+  resetPassword: (data: { account: string; code: string; newPassword: string }) =>
+    http.post<null>('/auth/password/reset', data)
 }
 
 /** 验证码 */

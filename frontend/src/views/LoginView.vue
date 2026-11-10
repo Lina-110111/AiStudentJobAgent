@@ -164,6 +164,8 @@
 
       <div class="tips">
         还没有账号？<el-link type="primary" @click="registerVisible = true">注册一个</el-link>
+        ｜
+        <el-link type="primary" @click="openForgot">忘记密码？</el-link>
       </div>
       <div class="demo-tip">
         演示账号（密码均为 123456）：student01 / counselor01 / hr01 / admin01
@@ -194,6 +196,49 @@
       <template #footer>
         <el-button @click="registerVisible = false">取消</el-button>
         <el-button type="primary" :loading="registering" @click="onRegister">注册</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="forgotVisible" title="重置密码" width="460px">
+      <el-form label-width="110px">
+        <el-form-item label="手机号/邮箱">
+          <el-input v-model="forgotForm.account" placeholder="注册时绑定的手机号或邮箱" clearable />
+        </el-form-item>
+        <el-form-item label="图形验证码">
+          <div class="captcha-row">
+            <el-input v-model="forgotForm.captchaCode" placeholder="请输入右侧字符" />
+            <img
+              class="captcha-img"
+              :src="toImgSrc(forgotCaptcha.image)"
+              alt="图形验证码"
+              title="看不清？点击刷新"
+              @click="refreshForgotImage"
+            />
+          </div>
+        </el-form-item>
+        <el-form-item label="短信/邮箱验证码">
+          <div class="captcha-row">
+            <el-input v-model="forgotForm.code" placeholder="请输入 6 位验证码" maxlength="6" />
+            <el-button :disabled="forgotCountdown > 0" @click="onSendResetCode">
+              {{ forgotCountdown > 0 ? `${forgotCountdown}s后重发` : '获取验证码' }}
+            </el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input
+            v-model="forgotForm.newPassword"
+            type="password"
+            show-password
+            placeholder="6-32 位，登录时使用"
+          />
+        </el-form-item>
+      </el-form>
+      <div class="demo-tip">
+        手机号走短信验证码（Mock 模式，验证码见后端日志）；邮箱走真实邮件。
+      </div>
+      <template #footer>
+        <el-button @click="forgotVisible = false">取消</el-button>
+        <el-button type="primary" :loading="forgotSubmitting" @click="onResetPassword">确认重置</el-button>
       </template>
     </el-dialog>
   </div>
@@ -238,6 +283,13 @@ const registerForm = reactive({
   email: '',
   roleCode: 'STUDENT'
 })
+
+// 忘记密码：独立的图形验证码，避免和登录页签的验证码互相消费
+const forgotVisible = ref(false)
+const forgotSubmitting = ref(false)
+const forgotCountdown = ref(0)
+const forgotForm = reactive({ account: '', captchaCode: '', code: '', newPassword: '' })
+const forgotCaptcha = reactive({ captchaId: '', image: '' })
 
 // 验证码相关（三种登录方式共用）
 const imageCaptcha = reactive({ captchaId: '', image: '' })
@@ -502,6 +554,89 @@ async function onRegister() {
     registerVisible.value = false
   } finally {
     registering.value = false
+  }
+}
+
+// ---------- 忘记密码 ----------
+function openForgot() {
+  forgotVisible.value = true
+  refreshForgotImage()
+}
+
+async function refreshForgotImage() {
+  try {
+    const res = await captchaApi.image()
+    forgotCaptcha.captchaId = res.captchaId
+    forgotCaptcha.image = res.image
+  } catch {
+    // 错误已被拦截器提示
+  }
+}
+
+// 发送重置验证码：手机号走短信，邮箱走邮件
+async function onSendResetCode() {
+  if (!forgotForm.account) {
+    ElMessage.warning('请先输入手机号或邮箱')
+    return
+  }
+  if (!forgotForm.captchaCode) {
+    ElMessage.warning('请先输入图形验证码')
+    return
+  }
+  try {
+    const res = await authApi.sendResetCode({
+      account: forgotForm.account,
+      captchaId: forgotCaptcha.captchaId,
+      captchaCode: forgotForm.captchaCode
+    })
+    ElMessage.success(
+      res.channel === 'SMS'
+        ? `验证码已发送至 ${res.maskedAccount}（Mock 模式，验证码见后端日志）`
+        : `验证码已发送至 ${res.maskedAccount}，请查收邮箱`
+    )
+    forgotForm.captchaCode = ''
+    forgotCountdown.value = 60
+    const timer = setInterval(() => {
+      forgotCountdown.value--
+      if (forgotCountdown.value <= 0) clearInterval(timer)
+    }, 1000)
+    // 图形验证码已被消费，换一张新的
+    await refreshForgotImage()
+  } catch {
+    await refreshForgotImage()
+  }
+}
+
+async function onResetPassword() {
+  if (!forgotForm.account) {
+    ElMessage.warning('请先输入手机号或邮箱')
+    return
+  }
+  if (!forgotForm.code) {
+    ElMessage.warning('请先输入验证码')
+    return
+  }
+  if (forgotForm.newPassword.length < 6 || forgotForm.newPassword.length > 32) {
+    ElMessage.warning('新密码长度需在 6-32 位之间')
+    return
+  }
+  forgotSubmitting.value = true
+  try {
+    await authApi.resetPassword({
+      account: forgotForm.account,
+      code: forgotForm.code,
+      newPassword: forgotForm.newPassword
+    })
+    ElMessage.success('密码重置成功，请用新密码登录')
+    forgotVisible.value = false
+    forgotForm.account = ''
+    forgotForm.captchaCode = ''
+    forgotForm.code = ''
+    forgotForm.newPassword = ''
+  } catch {
+    await refreshForgotImage()
+  } finally {
+    forgotSubmitting.value = false
   }
 }
 

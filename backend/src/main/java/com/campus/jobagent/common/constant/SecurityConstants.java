@@ -23,6 +23,7 @@ public final class SecurityConstants {
             "/api/auth/sms/**",
             "/api/auth/email/**",
             "/api/auth/register",
+            "/api/auth/password/**",
             "/api/captcha/**",
             "/api/policy/public/**",
             "/v3/api-docs/**",
