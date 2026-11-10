@@ -176,6 +176,12 @@
         <el-form-item label="账号"><el-input v-model="registerForm.username" /></el-form-item>
         <el-form-item label="密码"><el-input v-model="registerForm.password" type="password" show-password /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="registerForm.realName" /></el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="registerForm.phone" maxlength="11" placeholder="选填，绑定后可用手机号登录" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="registerForm.email" placeholder="选填，绑定后可用邮箱登录" />
+        </el-form-item>
         <el-form-item label="角色">
           <el-select v-model="registerForm.roleCode" style="width: 100%">
             <el-option label="学生" value="STUDENT" />
@@ -224,7 +230,14 @@ const emailFormRef = ref<FormInstance>()
 const emailForm = reactive({ email: '1183385627@qq.com', code: '', captchaCode: '' })
 const emailCountdown = ref(0)
 
-const registerForm = reactive({ username: '', password: '', realName: '', roleCode: 'STUDENT' })
+const registerForm = reactive({
+  username: '',
+  password: '',
+  realName: '',
+  phone: '',
+  email: '',
+  roleCode: 'STUDENT'
+})
 
 // 验证码相关（三种登录方式共用）
 const imageCaptcha = reactive({ captchaId: '', image: '' })
@@ -465,10 +478,27 @@ async function onEmailSubmit() {
 }
 
 async function onRegister() {
+  // 手机号 / 邮箱为选填，填了就必须格式正确，否则注册后无法用于对应登录方式
+  if (registerForm.phone && !/^1[3-9]\d{9}$/.test(registerForm.phone)) {
+    ElMessage.warning('手机号格式不正确，请输入 11 位手机号')
+    return
+  }
+  if (registerForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email)) {
+    ElMessage.warning('邮箱格式不正确')
+    return
+  }
   registering.value = true
   try {
-    await authApi.register({ ...registerForm })
-    ElMessage.success('注册成功，请登录')
+    await authApi.register({
+      ...registerForm,
+      phone: registerForm.phone || undefined,
+      email: registerForm.email || undefined
+    })
+    ElMessage.success(
+      registerForm.phone || registerForm.email
+        ? '注册成功，已绑定手机号/邮箱，可直接用对应方式登录'
+        : '注册成功，请登录'
+    )
     registerVisible.value = false
   } finally {
     registering.value = false
