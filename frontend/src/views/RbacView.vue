@@ -36,10 +36,10 @@
 
     <el-card shadow="never" class="mine">
       <template #header>
-        <span>我的权限（{{ userStore.permissions.length }} 项）</span>
+        <span>我的权限（{{ userStore.permCount }} 项）</span>
       </template>
-      <el-tag v-for="perm in userStore.permissions" :key="perm" class="perm-tag" effect="plain">{{ perm }}</el-tag>
-      <span v-if="!userStore.permissions.length" class="none">当前账号没有任何权限码</span>
+      <el-tag v-for="perm in userStore.permissions || []" :key="perm" class="perm-tag" effect="plain">{{ perm }}</el-tag>
+      <span v-if="!userStore.permCount" class="none">当前账号没有任何权限码</span>
     </el-card>
   </div>
 </template>

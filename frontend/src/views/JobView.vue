@@ -126,7 +126,7 @@ async function load(page = 1) {
   pageNum.value = page
   loading.value = true
   try {
-    const data = await jobApi.list({ pageNum, pageSize, keyword: keyword.value, city: city.value })
+    const data = await jobApi.list({ pageNum: pageNum.value, pageSize, keyword: keyword.value, city: city.value })
     list.value = data.records
     total.value = data.total
   } finally {

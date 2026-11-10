@@ -23,7 +23,7 @@
               {{ userStore.realName }}
               <el-tag size="small" class="role-tag">{{ userStore.info?.roleLabel }}</el-tag>
               <el-tag size="small" type="info" class="role-tag">
-                {{ userStore.permissions.length }} 项权限
+                {{ userStore.permCount }} 项权限
               </el-tag>
             </span>
             <template #dropdown>
@@ -72,7 +72,12 @@ async function onCommand(command: string) {
     router.push('/profile')
     return
   }
-  await ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
+  } catch {
+    // 用户点了取消，保持在当前页面
+    return
+  }
   userStore.logout()
   router.push('/login')
 }

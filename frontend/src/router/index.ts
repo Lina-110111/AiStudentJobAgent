@@ -33,7 +33,8 @@ const routes: RouteRecordRaw[] = [
         path: 'profile',
         name: 'profile',
         component: () => import('@/views/ProfileView.vue'),
-        meta: { title: '个人档案', roles: ALL, perm: 'resume:view' }
+        // 个人档案对所有角色开放，作为无权限时的兜底页
+        meta: { title: '个人档案', roles: ALL }
       },
       {
         path: 'rbac',
@@ -59,7 +60,7 @@ const router = createRouter({
 export const menus: MenuItem[] = [
   { index: '/dashboard', title: '就业数据看板', icon: 'DataAnalysis', roles: ALL, perm: 'dashboard:view' },
   { index: '/job', title: '岗位匹配', icon: 'Briefcase', roles: ALL, perm: 'job:view' },
-  { index: '/profile', title: '个人档案', icon: 'User', roles: ALL, perm: 'resume:view' },
+  { index: '/profile', title: '个人档案', icon: 'User', roles: ALL },
   { index: '/rbac', title: '权限管理', icon: 'Setting', roles: ['COLLEGE_ADMIN'] as RoleCode[], perm: 'user:manage' }
 ]
 
@@ -87,7 +88,8 @@ router.beforeEach(async (to) => {
     // 回落到当前角色确实有权限的页面，避免重定向死循环
     const fallback = userStore.hasPerm('job:view') ? 'job' : 'profile'
     if (to.name === fallback) {
-      return false
+      // 兜底页本身不再拦截，否则用户会被卡在登录页出不去
+      return true
     }
     return { name: fallback }
   }

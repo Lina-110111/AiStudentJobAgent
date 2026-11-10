@@ -19,7 +19,9 @@ export const useUserStore = defineStore('user', {
   getters: {
     isLogin: (state) => !!state.token,
     roleCode: (state): RoleCode | '' => state.info?.roleCode ?? '',
-    realName: (state) => state.info?.realName || state.info?.username || ''
+    realName: (state) => state.info?.realName || state.info?.username || '',
+    /** 权限数量（热更新等异常情况下 permissions 可能为空，这里兜底成 0） */
+    permCount: (state) => (state.permissions ?? []).length
   },
   actions: {
     async login(payload: LoginPayload) {
@@ -28,6 +30,13 @@ export const useUserStore = defineStore('user', {
       this.info = data.user
       this.permissions = []
       setToken(data.token)
+      // 登录响应里不带权限码，这里补拉一次 /me，
+      // 保证跳转后菜单和按钮的权限判断立刻有数据，不会因为空权限被挡在门外
+      try {
+        await this.loadProfile()
+      } catch {
+        // 权限拉取失败不影响已登录状态，进入页面后路由守卫会再拉一次
+      }
       return data
     },
     /** 拉取当前用户 + 权限码，登录后与刷新时都会走这里 */
@@ -49,11 +58,11 @@ export const useUserStore = defineStore('user', {
     },
     /** 细粒度：权限码判断，如 hasPerm('job:add') */
     hasPerm(perm: string): boolean {
-      return this.permissions.includes(perm)
+      return (this.permissions ?? []).includes(perm)
     },
     /** 任意一个权限码命中即可 */
     hasAnyPerm(perms: string[]): boolean {
-      return perms.some((perm) => this.permissions.includes(perm))
+      return perms.some((perm) => (this.permissions ?? []).includes(perm))
     }
   }
 })
